@@ -1,0 +1,85 @@
+import pandas as pd
+from fpdf import FPDF
+
+# Step 1: Read and analyze data
+def analyze_data(file_path):
+    # Load CSV file
+    data = pd.read_csv(file_path)
+    
+    # Perform basic analysis
+    total_sales = data['Sales'].sum()
+    average_sales = data['Sales'].mean()
+    top_seller = data.loc[data['Sales'].idxmax()]
+    
+    analysis = {
+        "total_sales": total_sales,
+        "average_sales": average_sales,
+        "top_seller": top_seller['Name'],
+        "top_seller_sales": top_seller['Sales']
+    }
+    return data, analysis
+
+# Step 2: Generate PDF Report
+class PDFReport(FPDF):
+    def header(self):
+        self.set_font("Arial", "B", 12)
+        self.cell(0, 10, "Sales Report", align="C", ln=True)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font("Arial", "I", 8)
+        self.cell(0, 10, f"Page {self.page_no()}", align="C")
+
+    def add_section_title(self, title):
+        self.set_font("Arial", "B", 12)
+        self.cell(0, 10, title, ln=True, align="L")
+        self.ln(5)
+
+    def add_text(self, text):
+        self.set_font("Arial", size=12)
+        self.multi_cell(0, 10, text)
+        self.ln()
+
+    def add_table(self, data):
+        self.set_font("Arial", "B", 12)
+        self.cell(50, 10, "Name", 1, align="C")
+        self.cell(50, 10, "Sales", 1, align="C")
+        self.cell(50, 10, "Region", 1, ln=True, align="C")
+        
+        self.set_font("Arial", size=12)
+        for _, row in data.iterrows():
+            self.cell(50, 10, row['Name'], 1, align="C")
+            self.cell(50, 10, str(row['Sales']), 1, align="C")
+            self.cell(50, 10, row['Region'], 1, ln=True, align="C")
+        self.ln()
+
+def generate_pdf_report(file_path, output_file):
+    # Analyze data
+    data, analysis = analyze_data(file_path)
+
+    # Create PDF report
+    pdf = PDFReport()
+    pdf.add_page()
+
+    # Add introduction
+    pdf.add_section_title("Overview")
+    overview_text = (
+        f"Total Sales: ${analysis['total_sales']}\n"
+        f"Average Sales: ${analysis['average_sales']:.2f}\n"
+        f"Top Seller: {analysis['top_seller']} (${analysis['top_seller_sales']})"
+    )
+    pdf.add_text(overview_text)
+
+    # Add table of data
+    pdf.add_section_title("Sales Data")
+    pdf.add_table(data)
+
+    # Save PDF
+    pdf.output(output_file)
+    print(f"PDF report generated: {output_file}")
+
+# Step 3: Run the script
+if __name__ == "__main__":
+    input_file = "data.csv"      # Replace with your CSV file path
+    output_file = "sales_report.pdf"
+    generate_pdf_report(input_file, output_file)
